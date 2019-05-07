@@ -1,0 +1,175 @@
+# correlation code # 
+
+#this is the head of the data set ncbirths
+fage mage      mature weeks    premie visits marital gained weight
+1   NA   13 younger mom    39 full term     10 married     38   7.63
+2   NA   14 younger mom    42 full term     15 married     20   7.88
+3   19   15 younger mom    37 full term     11 married     38   6.63
+4   21   15 younger mom    41 full term      6 married     34   8.00
+5   NA   15 younger mom    39 full term      9 married     27   6.38
+6   NA   15 younger mom    38 full term     19 married     22   5.38
+lowbirthweight gender     habit  whitemom
+1        not low   male nonsmoker not white
+2        not low   male nonsmoker not white
+3        not low female nonsmoker     white
+4        not low   male nonsmoker     white
+5        not low female nonsmoker not white
+6            low   male nonsmoker not white
+
+# Compute correlation
+head(ncbirths)
+ncbirths %>%
+  summarize(N = n(), r = cor(weight, mage))
+
+# Compute correlation for all non-missing pairs
+ncbirths %>%
+  summarize(N = n(), r = cor(weight, weeks, use = "pairwise.complete.obs"))
+
+########### http://r-statistics.co/Linear-Regression.html
+######## use cars data set to understand lm ########
+#checking for outliers
+par(mfrow=c(1, 1))  # divide graph area in 2 columns
+boxplot(cars$speed, main="Speed", sub=paste("Outlier rows: ", boxplot.stats(cars$speed)$out))  # box plot for 'speed'
+boxplot(cars$dist, main="Distance", sub=paste("Outlier rows: ", boxplot.stats(cars$dist)$out))  # box plot for 'distance'
+
+#Density plot – Check if the response variable is close to normality
+library(e1071)
+par(mfrow=c(1, 1))  # divide graph area in 2 columns
+plot(density(cars$speed), main="Density Plot: Speed", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(cars$speed), 2)))  # density plot for 'speed'
+polygon(density(cars$speed), col="red")
+plot(density(cars$dist), main="Density Plot: Distance", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(cars$dist), 2)))  # density plot for 'dist'
+polygon(density(cars$dist), col="red")
+
+#calculate the correlation
+cor(cars$speed, cars$dist)  # calculate correlation between speed and distance
+
+#The lm() function takes in two main arguments, namely: 
+#1. Formula 2. Data. The data is typically a data.frame and the formula is a object of class formula. 
+#But the most common convention is to write out the formula directly in place of the argument as written below.
+linearMod <- lm(dist ~ speed, data=cars)  # build linear regression model on full data
+#> same as:  lm(formula = dist ~ speed, data = cars)
+summary(linearMod)
+#A larger t-value indicates that it is less likely that the coefficient is not equal to zero purely by chance. 
+#So, higher the t-value, the better.
+# Pr(>|t|) or p-value is the probability that you get a t-value as high or higher than the observed value 
+# when the Null Hypothesis (the β coefficient is equal to zero or that there is no relationship) is true. 
+# So if the Pr(>|t|) is low, the coefficients are significant (significantly different from zero). 
+# If the Pr(>|t|) is high, the coefficients are not significant.
+
+#How to calculate the t Statistic and p-Values?
+modelSummary <- summary(linearMod)  # capture model summary as an object
+modelCoeffs <- modelSummary$coefficients  # model coefficients
+beta.estimate <- modelCoeffs["speed", "Estimate"]  # get beta estimate for speed
+std.error <- modelCoeffs["speed", "Std. Error"]  # get std.error for speed
+t_value <- beta.estimate/std.error  # calc t statistic
+p_value <- 2*pt(-abs(t_value), df=nrow(cars)-ncol(cars))  # calc p Value
+f_statistic <- linearMod$fstatistic[1]  # fstatistic
+f <- summary(linearMod)$fstatistic  # parameters for model p-value calc
+model_p <- pf(f[1], f[2], f[3], lower=FALSE)
+#the output of above is...
+# t Value:  9.46399
+# p Value:  1.489836e-12
+# Model F Statistic:  89.56711 1 48
+# Model p-Value:  1.489836e-12
+
+#Interpreting the #s
+# R-Squared	Higher the better (> 0.70)
+# Adj R-Squared	Higher the better
+# F-Statistic	Higher the better
+# Std. Error	Closer to zero the better
+# t-statistic	Should be greater 1.96 for p-value to be less than 0.05
+# AIC	Lower the better
+# BIC	Lower the better
+# Mallows cp	Should be close to the number of predictors in model
+# MAPE (Mean absolute percentage error)	Lower the better
+# MSE (Mean squared error)	Lower the better
+# Min_Max Accuracy => mean(min(actual, predicted)/max(actual, predicted))	Higher the better
+
+#now let's practice
+#SAT Scores
+states <- readRDS("/Users/david.sager/Downloads/states.rds")
+states %>%
+  ggplot(aes(x=expense, y=csat)) +
+  geom_point() + 
+  geom_smooth(method = "lm") + 
+  coord_cartesian(xlim = c(0, 10000))
+
+states %>%
+  summarize(N = n(), r = cor(csat, expense))
+
+linearMod <- lm(csat ~ expense, data=states)  # build linear regression model on full data
+summary(linearMod)
+# turn of scientific notation options(scipen = 999)
+AIC(linearMod)
+BIC(linearMod)
+
+linearMod2 <- lm(csat ~ expense + percent, data=states)  # build linear regression model on full data
+summary(linearMod2)
+#^^ adjusted r-squared read as: "we can account for x % of variance of the dependent variable"
+AIC(linearMod2)
+BIC(linearMod2)
+
+summary(states)
+
+
+################################ lm week 2 ##############################################################
+
+linearMod3 <- lm(csat ~ percent + expense, data=states)  # build linear regression model on full data
+linearMod4 <- lm(csat ~ percent + income, data=states)  # build linear regression model on full data
+
+summary(linearMod3)
+#seeing if income and expense are coorelated
+cor.test(states$income, states$expense)
+#^^ adjusted r-squared read as: "we can account for x % of variance of the dependent variable"
+
+states %>%
+  # filter(income <= 40) %>%
+  ggplot(aes(x = income, y= csat)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  coord_cartesian(xlim = c(20, 50))
+
+
+mean(states$expense)
+mean(states$percent)
+sd(states$percent)
+mean(states$csat)
+
+hist(states$percent)
+summary(states$percent)
+summary(linearMod3)
+summary(linearMod4)
+
+BIC(linearMod3)
+BIC(linearMod4)
+
+
+sd(states$percent)*coef(linearMod2)[3]
+
+
+linearMod3 <- lm(csat ~ percent + income, data=states)  # build linear regression model on full data
+summary(linearMod3)
+
+cor(states[3:21])
+
+linearMod5 <- lm(csat ~ percent + income + green, data=states)  # build linear regression model on full data
+summary(linearMod5)
+BIC(linearMod5)
+cor(states$green, states$income, na.rm = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
