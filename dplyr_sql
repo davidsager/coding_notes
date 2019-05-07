@@ -1,0 +1,212 @@
+# Tags: rpostgres, sql, server, PostgresSQL, DBI, lubridate, lag, facet, facet_wrap, ~, reorder, 
+
+#teach myself rpostgres sql
+#dbi, etc
+#create my own tables with in the serve
+#learn basics of sql
+####be able to connect and disconect from servers. mess w data in server. write a table, delete a table, figure out what collumns are in the data. how to append data, how to collect it
+#more info here https://github.com/r-dbi/RPostgres and https://db.rstudio.com/dplyr/
+
+#install and load the packages
+install.packages("RPostgres")
+library(DBI)
+library(dplyr)
+
+pacman::p_load(tidyverse, RPostgreSQL)
+
+## connect to sql server 
+con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                      user="dbuser", password="Dngsql909",
+                      dbname='analyticsdb', host='sql01.dngla.com')
+
+#Now create a variable that is all of the tables
+tables <- dbListTables(con)
+#call this variable
+tables
+#whichever number is put is the table number that is called. this gives me all of the columns.
+dbListFields(con, tables[2])
+
+#adding a table
+dbWriteTable(con, "mtcars", mtcars)
+
+#removing a table
+dbRemoveTable(con, "mtcars", mtcars)
+
+#playing with data on the server
+cars_db <- tbl(con, tables[2])
+kia_sales_db <- tbl(con, tables[3])
+lottery <- tbl(con, tables[2])
+
+#appending tables
+#dbWriteTable(con, "KIA_DCM_Data", table, append = TRUE, row.names = FALSE)
+
+#taking data off the server and bringing it to my computer
+test <- kia_sales_db%>%
+  filter(data_as_of == "2018-11-18") %>%
+  collect()
+test
+
+sales <- lottery %>%
+  collect()
+
+# disconnecting from the server
+dbDisconnect(con)
+# rm(con, lottery, tables)
+
+###############################################################
+#Collect lottery_game_sales & lotter_scratcher_sales
+
+con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                      user="dbuser", password="Dngsql909",
+                      dbname='analyticsdb', host='sql01.dngla.com')
+
+lottery_game_sales <- tbl(con, tables[2]) %>% collect()
+lottery_scratcher_sales <- tbl(con, tables[3]) %>% collect()
+
+# now play w the data
+lottery_game_sales %>% 
+  filter(str_detect(game , "Scratchers")) %>%
+  mutate(qtr = lubridate::quarter(date),
+         year = lubridate::year(date)) %>%
+  group_by(year, qtr) %>%
+  summarise(tot = sum(actual)) %>%
+  mutate(pct_change = round((tot - lag(tot))/lag(tot),2)) %>%
+  mutate(fy_yr = ifelse(qtr > 2, year + 1, year),
+         fy_qrtr = ifelse(qtr <3, qtr+2, qtr-2),
+         fy_qtr = paste0(fy_qrtr,"-", fy_yr),
+         )
+
+lottery_scratcher_sales %>%
+  mutate(qtr = lubridate::quarter(date),
+         year = lubridate::year(date)) %>%
+  group_by(year, qtr) %>%
+  summarise(tot = sum(actual)) %>%
+  mutate(pct_change = round((tot - lag(tot))/lag(tot),2)) %>%
+  mutate(fy_yr = ifelse(qtr > 2, year + 1, year),
+         fy_qrtr = ifelse(qtr <3, qtr+2, qtr-2),
+         fy_qtr = paste0(fy_qrtr,"-", fy_yr),
+  )
+
+lottery_scratcher_sales %>%
+  mutate(qtr = lubridate::quarter(date),
+         year = lubridate::year(date)) %>%
+  group_by(year, qtr) %>%
+  filter(year != 2014 & year != 2019) %>%
+  summarise(game_tot = sum(actual, na.rm = TRUE)) %>%
+  summarise(tot = sum(game_tot)) %>%
+  ggplot(aes(x=year, y=tot)) +
+  geom_point()
+
+lottery_game_sales %>% 
+  mutate(qtr = lubridate::quarter(date),
+         year = lubridate::year(date)) %>%
+  group_by(game) %>%
+  summarise(total_per_game = sum(actual)) %>%
+  filter(game != "Total") %>%
+  ggplot(aes(x=reorder(game, total_per_game), y=total_per_game)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  labs(x = "Game", y = "Sales per Game")
+
+lottery_game_sales %>%
+  filter(game == "Powerball") %>%
+  ggplot(aes(x=date, y=goal)) +
+  geom_line() +
+  geom_vline(xintercept = 5)
+
+###
+game_level <- rep(paste0("$",rep(first, each = 4, times =1), "_", second))
+
+first <- c(1, 2, 3, 5, 10, 20, 30)
+second <- c(1:4)
+rep(first, 4)
+rep(paste0("$",rep(first, each = 4, times =1), "_", second)) 
+
+lottery_scratcher_sales %>%
+  mutate(qtr = lubridate::quarter(date),
+         year = lubridate::year(date)) %>%
+  mutate(fy_yr = ifelse(qtr > 2, year + 1, year),
+         fy_qrtr = ifelse(qtr <3, qtr+2, qtr-2),
+         fy_qtr = paste0(fy_qrtr,"-", fy_yr)) %>%
+  # select(-c(6:7, 10:11)) %>%
+  group_by(game, fy, fy_qrtr) %>%
+  summarise(total_per_game = sum(actual)) %>%
+  mutate(game_by_qtr = paste0(game, "_", fy_qrtr)) %>%
+  mutate(game_by_qtr = factor(game_by_qtr, levels = game_level)) %>%
+  # filter(game != "$30") %>%
+  ggplot(aes(x=game_by_qtr, y= total_per_game, group = game, fill = game)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~fy, ncol = 1) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+lottery_scratcher_sales %>%
+  group_by(fy, game) %>%
+  summarise(total = sum(actual, na.rm = TRUE)) %>%
+  mutate(total = total*1000000) %>%
+  group_by(fy, game) %>%
+  summarise(year_sum = sum(total)) %>%
+  mutate(game_numeric = str_replace_all(game, "\\$", "")) %>%
+  mutate(game_numeric = as.numeric(game_numeric)) %>%
+  mutate(tickets_sold = year_sum/game_numeric) %>%
+  ggplot(aes(x=fy, y=tickets_sold, group = game, col = game)) +
+  geom_line()
+
+
+lottery_scratcher_sales %>%
+  mutate(month = lubridate::floor_date(date, unit = "month")) %>%
+  # mutate(month = lubridate::month(date, label = TRUE)) %>%
+  # mutate(year = lubridate::year(date)) %>%
+  group_by(month, game) %>%
+  summarise(total = sum(actual, na.rm = TRUE)) %>%
+  mutate(total = total*1000000) %>%
+  mutate(pct = total/sum(total)*100) %>%
+  #mutate(game = factor(game, levels = first)) %>%
+  ggplot(aes(x = month, y = pct, group = game, col = game)) + 
+  geom_line()  +
+  scale_x_date(date_breaks = "6 months") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  labs(x = "Date", y= "Percent of Ticket Sales")
+
+
+#Q4 consistently has the highest $5 sales. why?
+#YOY $20 sales have increased. why?
+#What affect do $30 sales have on sales of others?
+
+
+####
+lottery_scratcher_sales %>%
+  mutate(qtr = lubridate::quarter(date),
+         year = lubridate::year(date)) %>%
+  mutate(fy_yr = ifelse(qtr > 2, year + 1, year),
+         fy_qrtr = ifelse(qtr <3, qtr+2, qtr-2),
+         fy_qtr = paste0(fy_qrtr,"-", fy_yr)) %>%
+  select(-c(6:7, 10:11)) %>%
+  gather(cat, value, 2:3) %>%
+  ggplot(aes(x=game, y= value, group = cat, fill = cat)) +
+  geom_bar(stat = "identity", pos = "dodge")
+  # geom_point() + 
+  #   facet_wrap(~cat, ncol = 2)
+
+#If $30s are taken out, how does this affect sales of the rest of the scratchers?
+#Why are $20s, $30s, and $3s underperforming?
+#What quarters are $5s exceeding goals the most? 
+
+
+## write a function that the input is the game type and the output is % of total sales
+pct_fun <- function(game_type) {
+  
+  lottery_game_sales %>%
+    group_by(game) %>%
+    # filter(game != "$30") %>%
+    summarise(total_by_game = sum(actual)) %>%
+    slice(1:11) %>%
+    mutate(total = sum(total_by_game)) %>%
+    mutate(pct_of_total = total_by_game/total*100) %>%
+    select(-c(2:3)) %>%
+    filter(game == game_type)
+}
+
+game_list
+pct_fun('Hot-Spot')
+
+
