@@ -1,0 +1,46 @@
+# tags: get_followers, twitter, token, Sys.sleep, rtweet
+
+
+install.packages("rtweet")
+library(rtweet)
+#get_followers()
+
+create_token(
+  app = "Followers_Research",
+  consumer_key = "YaS3Ij6YigZTNDtlibTs13x4s",
+  consumer_secret = "EDwegjd9AoY2ioS6EbS2OrtLJ125IIEy3m1YIlLJKfaIpBptQx",
+  access_token = "935602195227058177-t9nS9cNhIn6fwKi3wV6zk9QTV5HRsnv",
+  access_secret = "H8CWJqVV3lqxAsv1clxGsbbEPkFubvEjK6td8Gsx7NiLK")
+
+
+jib <- get_followers("JackBox", n = 75000)
+jib2 <- get_followers("JackBox", n = 75000, page = next_cursor(jib))
+nextpage <- next_cursor(jib2)
+jib <- rbind(jib, jib2)
+attr(jib, "next_cursor") <- next_page
+jib
+
+users <- lookup_users(pres$user_id[1:10], parse = TRUE, token = NULL)
+
+dfdf <- function() {
+  # foll <- follower_count(handle)
+  foll <- 267000
+  loop_ct <- ceiling(foll/75000)
+  for (i in seq_len(loop_ct)) {
+    
+    obj <- get_followers("JackBox", n = 75000)
+    assign(paste0('jib', i), obj)
+    if (i > 1) {
+      
+      obj <- get_followers("JackBox", n = 75000, page = next_cursor(paste0("jib",[i])))
+      assign(paste0('jib', i), obj)
+    }
+    
+  }
+  
+}
+dfdf()
+
+num_of_pulls <- for(i in seq(1, ceiling(152000/75000), 1)
+# look up how to assign names to an object. assign within a for loop. then sleep for 15 min.  
+
