@@ -1,0 +1,221 @@
+##%######################################################%##
+#                                                          #
+####           Hypothesis Testing - for Sager           ####
+#                                                          #
+##%######################################################%##
+
+
+#   ____________________________________________________________________________
+#   ONE TAIL (LOWER TAIL) POPULATION MEAN, KNOW VARIANCE                               ####
+xbar =  950           # sample mean 
+mu0 =   1000          # hypothesized value 
+sigma = 60            # population standard deviation (variance of the overall population of all lightbulbs ever made)
+n =   40               # sample size 
+z = (xbar-mu0)/(sigma/sqrt(n)) 
+z                      # test statistic 
+# one tail 
+alpha = .05 
+z.alpha = qnorm(1-alpha) 
+-z.alpha               # critical value 
+# is the test statistic lower/greater than critical value
+z < -z.alpha
+# can also calculate the p-value of the test statistic (is < .05)
+pval = pnorm(z) 
+pval                   # lower tail p−value 
+
+
+#   ____________________________________________________________________________
+#   ONE TAIL (UPPER) MEAN AND KNOWN VARIANCE                                ####
+xbar =              # sample mean 
+mu0 =                 # hypothesized value 
+sigma =            # population standard deviation 
+n =                  # sample size 
+z = (xbar−mu0)/(sigma/sqrt(n)) 
+z                      # test statistic 
+
+alpha = .05 
+z.alpha = qnorm(1−alpha) 
+z.alpha                # critical value 
+# ALTERNATIVE 
+pval = pnorm(z, lower.tail=FALSE) 
+pval                   # upper tail p−value 
+
+#   ____________________________________________________________________________
+#   TWO TAIL - POPULATION MEAN, KNOWN VARIANCE                              ####
+xbar =             # sample mean 
+mu0 =              # hypothesized value 
+sigma =             # population standard deviation 
+n =                  # sample size 
+z = (xbar-mu0)/(sigma/sqrt(n)) 
+z                      # test statistic 
+#
+alpha = .05 
+z.half.alpha = qnorm(1-alpha/2) 
+c(-z.half.alpha, z.half.alpha) 
+# 
+# calculate the p-value of the test statistic
+pval = 2 * pnorm(z)    # lower tail 
+pval                   # two−tailed p−value 
+
+
+#   ____________________________________________________________________________
+#   ONE TAIL (LOWER TAIL) - UNKNOWN VARIANCE                                  ####
+# when we can only test based on the sample variance, it is a t-value, not a z-value
+# everything is the exact same. just use qt rather than qnorm, and df is (n-1)
+# 
+xbar =   985          # sample mean 
+mu0 =     1000        # hypothesized value 
+s =       80          # sample standard deviation 
+n =       40          # sample size 
+t = (xbar-mu0)/(s/sqrt(n)) 
+t                      # test statistic 
+
+alpha = .05 
+t.alpha = qt(1-alpha, df=n-1) 
+-t.alpha               # critical value 
+# is the test statistic lower/greater than critical value
+#
+# can also calculate the p-value of the test statistic (is < .05)
+pval = pt(t, df=n-1) 
+pval                  # lower tail p−value 
+
+
+#   ____________________________________________________________________________
+#   ONE TAIL (UPPER) - MEAN, UNKNOWN VARIANCE                               ####
+
+xbar =              # sample mean 
+mu0 =                 # hypothesized value 
+s =                 # sample standard deviation 
+n =                  # sample size 
+t = (xbar-mu0)/(s/sqrt(n)) 
+t                      # test statistic 
+
+alpha = .05 
+t.alpha = qt(1-alpha, df=n-1) 
+t.alpha                # critical value 
+
+pval = pt(t, df=n-1, lower.tail=FALSE) 
+pval                   # upper tail p−value 
+
+
+#   ____________________________________________________________________________
+#   TWO TAIL - UNKNOWN VARIANCE                                             ####
+xbar =             # sample mean 
+mu0 =              # hypothesized value 
+s =                 # sample standard deviation 
+n =                  # sample size 
+t = (xbar-mu0)/(s/sqrt(n)) 
+t                      # test statistic 
+
+alpha = .05 
+t.half.alpha = qt(1-alpha/2, df=n-1) 
+c(-t.half.alpha, t.half.alpha) 
+#
+pval = 2 * pt(t, df=n-1)  # lower tail 
+pval                      # two−tailed p−value 
+
+
+#   ____________________________________________________________________________
+#   ONE TAIL (LOWER) POPULATION PROPORTION                                  ####
+pbar =  750/2000         # sample proportion (successes / total opportunities)
+p0 =     .43            # hypothesized value (what it's supposed to be)
+n =      2000           # sample size 
+z = (pbar-p0)/sqrt(p0*(1-p0)/n) 
+z                      # test statistic 
+
+alpha = .05 
+z.alpha = qnorm(1-alpha) 
+-z.alpha               # critical value 
+
+# alternative 
+pval = pnorm(z) 
+pval                   # lower tail p−value 
+# alternative solution 2
+prop.test(750, 2000 , p=.43, alt="less", correct=FALSE) 
+
+
+#   ____________________________________________________________________________
+#   ONE TAIL (UPPER) POPULATION PROPORTION                                  ####
+pbar =   2/3000        # sample proportion 
+p0 =     1000/4000000           # hypothesized value 
+n =       3000          # sample size 
+z = (pbar-p0)/sqrt(p0*(1-p0)/n) 
+z                      # test statistic 
+
+alpha = .05 
+z.alpha = qnorm(1-alpha) 
+z.alpha                # critical value 
+
+# alternate 1
+pval = pnorm(z, lower.tail=FALSE) 
+pval                   # upper tail p−value
+# alternative solution 2
+prop.test(,, p=, alt="greater", correct=FALSE) 
+
+
+#   ____________________________________________________________________________
+#   TWO TAIL PROPORTION   coin flip / rolling dice                                                ####
+pbar =           # sample proportion 
+p0 =                 # hypothesized value 
+n =                  # sample size 
+z = (pbar-p0)/sqrt(p0*(1-p0)/n) 
+z                      # test statistic 
+
+alpha = .05 
+z.half.alpha = qnorm(1-alpha/2) 
+c(-z.half.alpha, z.half.alpha) 
+
+# alternative solution
+pval = 2 * pnorm(z, lower.tail=FALSE)  # upper tail 
+pval                   # two−tailed p−value 
+# alternative 2
+prop.test(, , p=, correct=FALSE) 
+
+# Two Tail - Two Proportion 
+
+prop.test(c(success1, success2), c(total1, total2))
+
+ken_griffey_hr <- 2143
+ken_griffey_ab <- 7229
+kgj_hr <- 2781
+kgj_ab <- 9801
+#who was better hitter
+prop.test(c(2143, 2781), c(7229, 9801))
+
+#   ____________________________________________________________________________
+#   t - test  #
+
+#load lahman data - fielding and batting
+
+library(here)
+library(dplyr)
+library(tidyverse)
+
+batting <- read_csv(here("desktop", "R", "baseball", "data", "core", "Batting.csv"))
+fielding <- read_csv(here("desktop", "R", "baseball", "data", "core", "Fielding.csv"))
+
+batting
+fielding
+
+df <- batting %>%
+  left_join(fielding, by = "playerID")
+
+#keep 1995 - 2018. plays 2nd base or SS. 2 groups. each player find career batting avg. use t test to see if sig dif between 2 groups
+third <- df %>%
+  filter(yearID.x >= 1995) %>%
+  filter(POS == "3B" & AB > 200) %>%
+  mutate(avg = H/AB) %>%
+  group_by(playerID) %>%
+  summarise(batting_avg = mean(avg))
+
+ss <- df %>%
+  filter(yearID.x >= 1995) %>%
+  filter(POS == "SS" & AB > 200) %>%
+  mutate(avg = H/AB) %>%
+  group_by(playerID) %>%
+  summarise(batting_avg = mean(avg))
+
+t.test(ss$batting_avg, third$batting_avg)
+
+
+
