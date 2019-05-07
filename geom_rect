@@ -1,0 +1,20 @@
+temp <- scratchers_filtered %>%
+  filter(fy == "fy14_fy15")
+
+odd <- seq(1,12, 2)
+
+rect_data <- temp %>%
+  mutate(month = lubridate::month(date)) %>%
+  mutate(dummy = ifelse(month %in% odd, 0, 1)) %>%
+  group_by(month, dummy) %>%
+  summarise(total = sum(actual))
+
+ggplot(rect_data, aes(x=month, y=total)) +
+  geom_rect(data = subset(rect_data, dummy == 0), 
+            aes(ymin = -Inf, ymax = Inf, xmin = month-.5, xmax = month+.5),
+            fill = "blue", alpha = .3) + 
+  geom_line() +
+  scale_x_continuous(
+    breaks = odd,
+    label = c(month.abb[odd])
+  )
