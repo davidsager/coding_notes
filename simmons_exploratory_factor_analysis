@@ -1,0 +1,66 @@
+#Installing the Psych package and loading it
+install.packages("psych")
+library(psych)
+#Loading the dataset
+bfi_data=bfi
+
+bfi_data=bfi_data[complete.cases(bfi_data),]
+
+#Create the correlation matrix from bfi_data
+bfi_cor <- cor(bfi_data)
+
+#Factor analysis of the data
+factors_data <- fa(r = bfi_cor, nfactors = 6)
+#Getting the factor loadings and model analysis
+factors_data
+
+
+pacman::p_load(tidyverse, readxl, janitor, here, glue, rvest)
+
+base <- read_excel(here("desktop", "simmons_questions.xlsx"))
+base <- base %>% clean_names()
+base <- base %>%
+  select(1:2, 4:8) %>%
+  filter(str_detect(question, "ANY AGREE"))
+  
+base
+
+nms <- c("landscape", "creation_story", "economy", "laws", "threats", "sacrifice", "rituals", "symbols", "values")
+nms2 <- c("values")
+questions <- read_excel(here("desktop", "simmons_buckets.xlsx"))
+questions <- questions %>% 
+  clean_names() %>% 
+  select(9) %>%
+  setNames(nms2)
+
+library(tidyverse)
+base %>% 
+  filter(str_detect(answer, "FAST FOOD FITS MY BUS"))
+base
+questions
+
+
+pacman::p_load(FactoMineR)
+result <- PCA(tmp$val[,1]) # graphs generated automatically
+
+
+pacman::p_load(nFactors)
+ev <- eigen(cor(as.matrix(tmp$vertical_percent))) # get eigenvalues
+ap <- parallel(subject=nrow(mydata),var=ncol(mydata),
+               rep=100,cent=.05)
+nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+plotnScree(nS)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
