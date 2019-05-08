@@ -6,7 +6,7 @@ pacman::p_load(tidyverse, RPostgreSQL)
 
 ## connect to sql server 
 con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
-                      user="dbuser", password="Dngsql909",
+                      user=Sys.getenv("POSTGRES_USER"), password=Sys.getenv("POSTGRES_PW"),
                       dbname='analyticsdb', host='sql01.dngla.com')
 
 #Now create a variable that is all of the tables
