@@ -1,0 +1,227 @@
+#functions, saving as RDS file, fixed, upper case, lower case,  
+
+x <- -3
+f <- function(x) {
+  if (x < 0) {
+    -2x
+  } else {
+    x
+  }
+}
+
+f(-4)
+########
+# Define a simple function
+myFirstFun<-function(n)
+{
+  n*n   
+}
+####
+  mySecFun<-function(v,M)
+  {
+    # Compute the square of each element of v into u
+    u=c(0,0,0,0)
+    for(i in 1:length(v))
+    { 
+      # Call our first function
+      u[i]=myFirstFun(v[i]) 
+    }}
+Sqv <- mySecFun(v)  
+Sqv
+####
+MyFourthFun <- function(n, y)  
+{ if(missing(y))
+{
+  y <- seq(0.05, 1, by = 0.01)
+}
+  return(n^y)
+}
+
+MyFourthFun(2,3)
+
+# Compute all possible according to given default
+MyFourthFun(2)  
+
+#########
+# Passing only 1 argument, nested call and no return: output unaccessible
+mySecFun<-function(v,M)
+{
+  # Compute the square of each element of v into u
+  u=c(0,0,0,0)
+  for(i in 1:length(v))
+  { 
+    # Call our first function
+    u[i]=myFirstFun(v[i]) 
+  }}
+
+# Assign `mySecFun(v)` to `Sqv`
+Sqv <- mySecFun(v)  
+# Call `Sqv`
+ Sqv
+NULL
+
+###########
+MyFourthFun <- function(n, y)  
+{  
+  # Uncomment `print()` calls to check passed values
+  # print(n)
+  # print(y)
+  if(missing(n)) n=2;
+  if(missing(y)) y=0.05;
+  if(!y %in% seq(0.05, 1, by = 0.02)) print("value must be <= 1)")
+  else return(n^y)
+}
+
+# Calculation will be carried out
+MyFourthFun(2,0.07)
+
+# Prints an error, `y` is not in the allowed list 
+MyFourthFun(2,3)
+
+# Use `y` default
+MyFourthFun(2)   
+
+# No arguments: both `n` and `y` defaults are used
+MyFourthFun()
+
+###########################
+#write a function. input players name, and his avg batting avg over their career outputs.
+#playerfind function. input is name. merge batting w player namer
+#search by first name, last name, upper case, lower case
+#batting avg but calculate confidence interval (95% confidence interval)
+#fixed
+#ended up doing more cool things than instructions above....
+
+library(here)
+library(tidyverse)
+library(dplyr)
+
+batting <- read_csv(here("Desktop", "R", "baseball", "data", "core", "Batting.csv"))
+names <- read_csv(here("Desktop", "R", "baseball", "data", "core", "People.csv"))
+fielding <- read_csv(here("Desktop", "R", "baseball", "data", "core", "Fielding.csv"))
+
+names_df <- names %>%
+  mutate(full_name = paste0(nameFirst, " ", nameLast)) %>%
+  select(-c(2:24))
+
+batting_avg <- batting %>% 
+  left_join(names_df) %>%
+  group_by(full_name) %>%
+  summarize(H = sum(H),
+            AB = sum(AB)) %>%
+  mutate(avg = H/AB)
+
+
+player_avg <- function(name) {
+  
+  if(str_count(name) < 3){
+    stop("Must have more letters")
+  }
+  out <- batting_avg %>%
+    filter(str_detect(full_name, fixed(name, ignore_case = TRUE))) %>%
+    filter(AB > 0) %>%
+    print()
+  
+  grph <- ggplot(out, aes(x = full_name, y = avg)) + 
+    geom_point()
+  grph
+  
+}
+player_avg("barry")
+
+##########################################################################################
+#person will give last name. summarise career batting avg. return that player along w 5 random players w same defensive position
+#return the list and graph it (with confidence interval)
+#learn how to calculate confidece interval in R
+#first do this for 1 batter w confidence interval. (avg =2, name =y)
+#hint: start w inner function
+
+
+saveRDS(batting_avg, "player_list.RDS")
+
+
+
+my_function <- function(firstName, lastName) {
+  
+  data <- readRDS("player_list.RDS") %>%
+    data.frame
+  
+  p <- paste0(firstName, " ", lastName) 
+  player_name <- data %>%
+    filter(str_detect(full_name, fixed(p, ignore_case = TRUE)))
+  
+  player_pos <- function(pos) {
+    data %>%
+      filter(POS == pos) %>%
+      sample_n(5) %>%
+      rbind(player_name)
+  }
+  temp <- player_pos(player_name$POS)
+  
+  ggplot(temp, aes(x=average, y=reorder(full_name, average))) +
+    geom_point() +
+    geom_errorbarh(aes(xmax = upper, xmin = lower, height = 0))
+    
+}
+
+my_function("Omar", "Vizquel")
+
+########
+#standard deviation time/confidence intervals!
+
+names_df <- names %>%
+  mutate(full_name = paste0(nameFirst, " ", nameLast)) %>%
+  select(-c(2:24))
+
+field_df <- fielding %>%
+  group_by(playerID, POS) %>%
+  summarise(g_pos = sum(G)) %>%
+  arrange(playerID, desc(g_pos)) %>%
+  group_by(playerID) %>%
+  slice(1)
+
+batting_avg <- batting %>% 
+  left_join(field_df) %>%
+  left_join(names_df) %>%
+  filter(H > 0) %>%
+  mutate(avg = H/AB) %>%
+  group_by(full_name, POS) %>%
+  summarise(average = mean(avg),
+            n = n(),
+            sd = sd(avg)) %>%
+  filter(n > 1) %>%
+  mutate(error = qnorm(0.975)*sd/sqrt(n),
+         lower = average - error,
+         upper = average + error) %>%
+  filter(POS != "P")
+
+saveRDS(batting_avg, "player_list.RDS")
+  
+
+
+##########################################################################################
+#user will request team name. stats of team will be scraped from website
+library(dplyr)
+library(tidyverse)
+library(rvest)
+
+url <- "https://www.baseball-reference.com/leagues/MLB/2018.shtml"
+
+scrape_fun <- function(name) {
+  
+  url %>%
+    read_html() %>%
+    html_nodes(xpath = '//*[@id="teams_standard_batting"]') %>%
+    html_table() %>%
+    flatten_df() %>%
+    filter(Tm == name)
+}
+
+scrape_fun("ARI")
+
+
+
+
+
+
+
