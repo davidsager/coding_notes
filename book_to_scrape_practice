@@ -1,0 +1,121 @@
+############################################################################
+#scrape http://books.toscrape.com/
+#col names include title of book, number of stars, price, whethere it's in stock, AND link to each book
+#(should be 1000 rows)
+#rvest
+
+library(rvest)
+library(dplyr)
+url <- "http://books.toscrape.com/index.html"
+ 
+xpath <- '//*[@id="default"]/div/div/div/div/section/div[2]/ol/li[1]'
+pre <- '//*[@id="default"]/div/div/div/div/section/div[2]/ol/li['
+suf <- ']'
+num <- seq(1,20, 1)
+xpath_list <- paste0(pre, num, suf)
+
+# do it for first pod. it works (sorta)
+url_pg_1 <- url %>%
+  read_html %>%
+  html_nodes("i.icon-star") %>%
+  html_text() %>%
+  str_replace_all("\n", "") %>%
+  str_replace_all("Add to basket", "")
+
+#2 now programatically do it for all pods
+all_xpath_data <- url
+  read_html %>%
+  for (xpath_temp in xpath_list) {
+    temp <- xpath_temp
+  html_nodes(xpath = xpath_list) %>%
+  html_text() %>%
+  temp <- NULL }
+  str_replace_all("\n", "") %>%
+  str_replace_all("Add to basket", "")
+
+#assume that worked and now we have 20 pods of data. let's do it for all 50 pages
+
+link1 <- "http://books.toscrape.com/catalogue/page-1.html"
+pre2 <- 'http://books.toscrape.com/catalogue/page-'
+suf2 <- '.html'
+num2 <- seq(1,50, 1)
+links_all <- paste0(pre2, num2, suf2)
+
+all_first_pod <- NULL
+for (link in links_all) {
+  temp <- link %>%
+    read_html %>%
+    html_nodes(xpath = '//*[@id="default"]/div/div/div/div/section/div[2]/ol/li[1]') %>%
+    html_text() %>%
+    str_replace_all("\n", "") %>%
+    str_replace_all("Add to basket", "")
+  all_first_pod <- rbind(all_first_pod, temp)
+  temp <- NULL
+}
+
+links_oneto50 <- links_all[1:50]
+
+all_page_pod <- NULL
+for (link in links_oneto50) {
+  temp <- link %>%
+    read_html %>%
+    html_nodes('.product_pod') %>%
+    html_text() %>%
+    str_replace_all("\n", "") %>%
+    str_replace_all("Add to basket", "")
+  all_page_pod <- rbind(all_page_pod, temp)
+  temp <- NULL
+}
+all_page_pod
+
+######
+#scrape all 1st pods of each 50 pages
+
+#create list of all pages
+link1 <- "http://books.toscrape.com/catalogue/page-1.html"
+pre2 <- 'http://books.toscrape.com/catalogue/page-'
+suf2 <- '.html'
+num2 <- seq(1,50, 1)
+links_all <- paste0(pre2, num2, suf2)
+
+#test to make sure xpath is same on each page for first pod
+
+#check page 2
+link2 <- 'http://books.toscrape.com/catalogue/page-2.html'
+link2 %>%
+  read_html %>%
+  html_nodes(xpath = '//*[@id="default"]/div/div/div/div/section/div[2]/ol/li[1]') %>%
+  html_text() %>%
+  str_replace_all("\n", "") %>%
+  str_replace_all("Add to basket", "")
+#it is the same xpath
+
+all_first_pod <- NULL
+for (link in links_all) {
+  temp <- link %>%
+    read_html %>%
+    html_nodes(xpath = '//*[@id="default"]/div/div/div/div/section/div[2]/ol/li[1]') %>%
+    html_text() %>%
+    str_replace_all("\n", "") %>%
+    str_replace_all("Add to basket", "")
+  all_first_pod <- rbind(all_first_pod, temp)
+  temp <- NULL
+}
+
+#I now have the first pod of each 50 pages
+#figure out how to put all pods together, then insert in loop above
+
+############
+numbers <- seq(1,5,1)
+podnumber <- letters[1:10]
+
+for (num in numbers) {
+  for (pod in podnumber) {
+    print(paste0(num,"--", pod))
+  }
+}
+
+
+
+
+
