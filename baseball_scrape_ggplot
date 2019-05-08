@@ -1,0 +1,93 @@
+data("iris")
+ 
+iris <- iris %>%
+  janitor::clean_names()
+
+iris %>%
+  group_by(species) %>%
+  summarise_at(vars(sepal_length:petal_width), mean)
+
+
+##############################################################################
+#baseball
+#espn.com/mlb/stats/batting. scrape by position (add in col that says what position)
+#per position find the avg WAR (wins above replacement)
+#graph, by position (catcher is 2, 1B is 3, (spell out third, first, etc),
+#each dot sized by # avg strikeouts. make each dot a dif col (manually pick and assign colors). Rcolor brewer. use pallets
+#graph has no gridlines. only major y gridlines. title, subtite, caption (what the source is). no legend
+
+library(rvest)
+library(dplyr)
+library(ggplot2)
+install.packages("RColorBrewer")
+library(RColorBrewer)
+
+
+pos <- c("c", "1b", "2b", "3b", "ss", "lf", "cf", "rf")
+url_main <- "http://www.espn.com/mlb/stats/batting"
+pre <- "http://www.espn.com/mlb/stats/batting/_/position/"
+
+full <- paste0(pre, pos)
+full
+
+baseball <- NULL
+  for(link in full) {
+    temp <- link %>%  
+      read_html() %>%
+      html_nodes(xpath = '//*[@id="my-players-table"]/div/div[1]/table') %>%
+      html_table() %>%
+      tibble() %>%
+      unnest() %>%
+      setNames(.[2,]) %>%
+      slice(-1) %>%
+      filter(RK != "RK") %>%
+      mutate(pos = link) %>%
+      mutate(pos = str_replace_all(pos, "http://www.espn.com/mlb/stats/batting/_/position/", ""))
+    baseball <- rbind(baseball, temp)
+  }
+ 
+baseball
+
+
+
+df <- baseball %>%
+  mutate_at(vars(AB:WAR), funs(as.numeric(.)))
+
+
+factor_vector <- c("c", "first", "second", "third", "ss", "rf", "cf", "lf")
+
+
+df %>%
+  mutate(pos = ifelse(pos == "1b", "first",
+                      ifelse(pos =="2b", "second",
+                             ifelse(pos =="3b", "third",
+                                    pos)))) %>%
+  #could also do it this way
+  # df %>% 
+  #   select(-c(PLAYER, TEAM, pos)) %>%
+  #   mutate_if(is.character, as.numeric)
+  ungroup() %>%
+  group_by(pos) %>%
+  summarise(avg_war = mean(WAR), avg_so = mean(SO)) %>%
+  mutate(pos = factor(pos, levels = factor_vector)) %>%
+  ggplot(aes(x=pos, y=avg_war, group = pos, color = pos), factor = factor_vector) +
+  geom_point(aes(size = avg_so)) +
+  scale_colour_brewer("Colors in Paired", palette="Paired", labels = NULL) +
+  theme_minimal() +
+  # theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+  #                    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(legend.position="none",
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.x = element_line(size = .15, color = 'red', linetype = "dashed")) +
+  labs(x = "Position", y = "Avg WAR",
+    title = "Best Graph Ever",
+       subtitle = "Totally",
+       caption = "this is a caption")
+  
+
+
+
+
+
+
+  
