@@ -1,0 +1,119 @@
+###### code review 2/7/19 ######
+# tags. scrape. inner_join, dumbbell, paste0, rbind, setNames, colnames, gather
+#scrape all 2018 pages
+#scrape all 2016 pages
+#merge together
+#keep wRC+
+#plot 20 players. top 10 who gained the most wrc and 10 who lost most in wrc.
+#create dumbell plot for each player
+#if player gained, color =blue, if lost, color=red
+library(purrr)
+library(tidyverse)
+
+#create 2018 urls
+url <- "https://www.fangraphs.com/leaders.aspx?pos=all&stats=bat&lg=all&qual=y&type=8&season=2018&month=0&season1=2018&ind=0&page=1_30"
+pre <- "https://www.fangraphs.com/leaders.aspx?pos=all&stats=bat&lg=all&qual=y&type=8&season=2018&month=0&season1=2018&ind=0&page="
+post <- "_30"
+page_num <- seq(1, 5, 1)
+urls_2018 <- paste0(pre, page_num, post)
+urls_2018
+
+#create 2016 urls
+url2 <- "https://www.fangraphs.com/leaders.aspx?pos=all&stats=bat&lg=all&qual=y&type=8&season=2016&month=0&season1=2016&ind=0&page=1_30"
+pre2 <- "https://www.fangraphs.com/leaders.aspx?pos=all&stats=bat&lg=all&qual=y&type=8&season=2016&month=0&season1=2016&ind=0&page="
+page_num <- seq(1, 5, 1)
+urls_2016 <- paste0(pre2, page_num, post)
+urls_2016
+
+#this works for 1 url
+test <- url %>% read_html() %>%
+  html_nodes(xpath = '//*[@id="LeaderBoard1_dg1_ctl00"]') %>%
+  html_table() %>%
+  flatten_df()
+test
+
+#think about using...
+#setnames &paste0 or glue or stringconcatenate
+#innerjoin
+#get rid of row 1 and 3. 2=col names
+
+url_test <- urls_2018[1]
+baseball_2018 <- NULL
+for (url in urls_2018) {
+  # creating a data frame to fill each time
+  temp <- url %>%
+    read_html() %>%
+    html_nodes(xpath = '//*[@id="LeaderBoard1_dg1_ctl00"]') %>%
+    html_table() %>%
+    flatten_df() %>%
+    filter(!str_detect(X2, "12345")) %>%
+    mutate_at(vars(X10:X11), funs(str_replace_all(., "%", ""))) %>%
+    mutate_at(vars(X10:X11), funs(str_trim(.)))
+  #print more rows w tibble.
+  # creating full data set
+  baseball_2018 <- rbind(baseball_2018, temp)
+  temp <- NULL
+}
+
+baseball_2018 <- baseball_2018 %>%
+  setNames(.[1,]) %>%
+  filter(!str_detect(Name, "Name")) %>%
+  mutate_at(vars(G:WAR), funs(as.numeric(.)))
+
+baseball_2018
+
+
+baseball_2016 <- NULL
+for (url in urls_2016) {
+  # creating a data frame to fill each time
+  temp <- url %>%
+    read_html() %>%
+    html_nodes(xpath = '//*[@id="LeaderBoard1_dg1_ctl00"]') %>%
+    html_table() %>%
+    flatten_df() %>%
+    filter(!str_detect(X2, "12345")) %>%
+    mutate_at(vars(X10:X11), funs(str_replace_all(., "%", ""))) %>%
+    mutate_at(vars(X10:X11), funs(str_trim(.)))
+  #print more rows w tibble.
+  # creating full data set
+  baseball_2016 <- rbind(baseball_2016, temp)
+  temp <- NULL
+}
+
+baseball_2016 <- baseball_2016 %>%
+  setNames(.[1,]) %>%
+  filter(!str_detect(Name, "Name")) %>%
+  mutate_at(vars(G:WAR), funs(as.numeric(.)))
+#now we have to make these colnames distinct from 2018 so they are dif when merge
+colnames(baseball_2016) <- paste0(colnames(baseball_2016), "_16")
+
+baseball_2016
+  
+
+#now join the 2 data sets
+full <- baseball_2018 %>%
+  inner_join(baseball_2016, by = c("Name" = "Name_16"))
+
+colnames(full) <- str_replace_all(colnames(full), "\\+", "")
+
+full %>%
+  select(Name, wRC, wRC_16) %>%
+  mutate(dif = wRC - wRC_16) %>%
+  arrange(desc(dif)) %>%
+  #this should have worked. didnt work. find dif way.
+  #slice(c(1:10, n()-10:n())) %>% data.frame
+  mutate(rank = row_number()) %>%
+  filter(rank <= 10 | rank >= n()-9) %>%
+  gather(type, value, 2:3) %>%
+  arrange(rank) %>%
+  mutate(color = ifelse(type == "wRC", "#0000ff", "#ff0000")) %>%
+  ggplot() +
+  geom_point(aes(x = value, y = reorder(Name, -rank), 
+                 group = type, color = type), size = 2) + 
+  scale_color_manual(values = c("#ff0000", "#0000ff", "#ff0000", "#0000ff")) + 
+  geom_path(aes(x = value, y= reorder(Name, -rank), group = Name, color = color))
+
+
+
+
+
