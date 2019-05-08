@@ -1,0 +1,35 @@
+#1. Scrape population for each state over 18 years old
+#2. Find population movement (by demo) for each state
+#3. Number of people (or %) who are insured
+
+library(dplyr)
+library(rvest)
+library(tidyverse)
+install.packages("stringr")
+library(stringr)
+
+url <- "www.census.gov/quickfacts/"
+
+new_url <- paste0(url, states)
+new_url
+ca <- "https://www.census.gov/quickfacts/ca"
+
+pop <- ca %>%
+  read_html() %>%
+  html_nodes("tbody+ tbody th , td") %>%
+  html_text() %>%
+  matrix(nrow = length(.)/2 , ncol = 2, byrow = TRUE) %>%
+  data.frame %>%
+  mutate(X1 = str_replace_all(X1, "\n", "") %>%
+  mutate(X2 = str_replace_all(X2, "\\\\", "")) 
+
+pop %>% mutate(X2 = str_replace_all(X2, "                           
+         
+  rename(category = )
+  mutate(as.numeric()
+    
+  
+
+pop
+  
+  
