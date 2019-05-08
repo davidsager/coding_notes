@@ -1,0 +1,62 @@
+#tags: str_trim, !is.na(.n)), scrape, nodes, urltools
+
+#1st loop pulls all urls
+#within that loop, have 5 random numbers between 1-120. whichever 5 numbers, scrape those urls
+#this is all within 1 loop
+#look into url tools
+
+#start w scraping 1 recipe
+.checkList__item
+
+url <- 'https://www.allrecipes.com/recipe/199579/orange-blintzes/?internalSource=hub%20recipe&referringContentType=Search&clickId=cardslot%203'
+first <- url %>% 
+  read_html %>%
+  html_nodes('.checkList__line , .checkList__item') %>%
+  html_text() %>%
+  str_replace_all("\r\n", "") %>%
+  str_replace_all("Add all ingredients to list", NA_character_) %>%
+  str_trim() %>%
+  tibble(ingredients = .) %>%
+  filter(!is.na(.)) 
+
+main_url <- 'https://www.allrecipes.com/search/results/?wt=blintz&sort=re&page=2'
+  
+main_url %>%
+  read_html() %>%
+  html_nodes("a") %>%
+  html_attr("href") %>%
+  tibble(ingredients = .) %>%
+  filter(!is.na(.)) %>%
+  filter(ingredients != "#") %>%
+  distinct() %>%
+  drop_na() %>%
+  filter(str_detect(ingredients, "/recipe/"))
+ 
+#these are the 5 recipes i need to scrape
+sample_recipes <- sample(dat$ingredients, 5) 
+
+all_ingred <- NULL
+for (link in sample_recipes) {
+  temp <- link %>% 
+    read_html %>%
+    html_nodes('.checkList__line , .checkList__item') %>%
+    html_text() %>%
+    str_replace_all("\r\n", "") %>%
+    str_replace_all("Add all ingredients to list", NA_character_) %>%
+    str_trim() %>%
+    tibble(ingredients = .) %>%
+    filter(!is.na(.))
+  all_ingred <- rbind (all_ingred, temp)
+  temp <- NULL
+}
+
+all_ingred %>%
+  data.frame
+
+install.packages("urltools")
+library(urltools)
+
+
+
+
+
